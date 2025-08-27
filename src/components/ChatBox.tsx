@@ -43,6 +43,7 @@ export default function ChatBox({ placeholders = ["Ask anything…"] }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLUListElement>(null);
   useOnClickOutside(suggestionsRef, () => setShowSuggestions(false));
 
@@ -82,9 +83,16 @@ export default function ChatBox({ placeholders = ["Ask anything…"] }) {
   }, []);
 
   // --- Event Handlers ---
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     setValue(text);
+
+    // Auto-resize textarea height to fit content
+    if (textareaRef.current) {
+      const el = textareaRef.current;
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    }
 
     const atIndex = text.lastIndexOf('@');
     if (atIndex !== -1) {
@@ -105,7 +113,7 @@ export default function ChatBox({ placeholders = ["Ask anything…"] }) {
     setShowSuggestions(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (showSuggestions) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -122,6 +130,15 @@ export default function ChatBox({ placeholders = ["Ask anything…"] }) {
       }
     }
   };
+
+  // Keep textarea height in sync when value changes programmatically
+  useEffect(() => {
+    if (textareaRef.current) {
+      const el = textareaRef.current;
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [value]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,18 +196,20 @@ export default function ChatBox({ placeholders = ["Ask anything…"] }) {
 
       {/* Chat Input */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative">
-        <form onSubmit={handleSubmit} className="flex items-center">
-          <div className="flex-1 px-4 py-3 relative">
+        <form onSubmit={handleSubmit} className="relative">
+          <div className="flex-1 px-4 py-3 pr-14 relative">
             <div className="relative">
-              <input
-                type="text"
+              <textarea
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
+                ref={textareaRef}
+                rows={1}
+                spellCheck={false}
                 className="custom-input"
                 placeholder={placeholders[currentPlaceholderIndex]}
                 style={{
-                  color: value.includes('@[') ? 'transparent' : '#1f2937',
+                  color: 'transparent',
                   caretColor: '#1f2937',
                   transition: value.length === 0 ? 'opacity 220ms ease, filter 220ms ease' : 'none',
                   filter: value.length === 0 ? placeholderFilter : 'none',
@@ -217,7 +236,7 @@ export default function ChatBox({ placeholders = ["Ask anything…"] }) {
               </ul>
             )}
           </div>
-          <button type="submit" disabled={!value.trim()} className="p-3 m-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={!value.trim()} className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors absolute bottom-2 right-2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
               <path d="M12 19V5M5 12l7-7 7 7" />
             </svg>

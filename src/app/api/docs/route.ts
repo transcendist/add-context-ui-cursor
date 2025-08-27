@@ -15,17 +15,24 @@ const DISPLAY_OVERRIDES: Record<string, string> = {
 }
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const q = searchParams.get('q') || ''
-  const id = searchParams.get('id')
-
   try {
+    const { searchParams } = request.nextUrl
+    const q = searchParams.get('q') ?? ''
+    const id = searchParams.get('id') ?? undefined
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[api/docs] params', { q, id })
+    }
+
     // If looking for a specific document by ID (for tooltip preview)
     if (id) {
       const document = await prisma.document.findUnique({
         where: { id },
         select: { id: true, title: true, content: true }
       })
+      if (!document) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      }
       return NextResponse.json(document)
     }
 
@@ -58,7 +65,6 @@ export async function GET(request: NextRequest) {
       take: 8 // Limit to 8 results as specified
     })
 
-    // Transform for react-mentions format
     const mentionData = documents.map(doc => ({
       id: doc.id,
       display: DISPLAY_OVERRIDES[doc.title] ?? doc.title,
@@ -68,6 +74,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(mentionData)
   } catch (error) {
     console.error('Error fetching documents:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const base = { error: 'Internal server error' }
+    if (process.env.NODE_ENV !== 'production') {
+      const err = error as any
+      return NextResponse.json({ ...base, message: err?.message, stack: err?.stack }, { status: 500 })
+    }
+    return NextResponse.json(base, { status: 500 })
   }
 }

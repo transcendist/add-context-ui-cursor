@@ -58,6 +58,8 @@ body {
 .custom-input {
   position: relative;
   z-index: 1; /* Sits on top for typing */
+  resize: none;
+  overflow: hidden; /* allow auto-grow without scrollbars */
 }
 
 /* Style for the mention chip inside the highlighter */
